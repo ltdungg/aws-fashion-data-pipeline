@@ -46,15 +46,14 @@ def read_product_data(file_path):
 
 if __name__ == "__main__":
     engine = create_engine(
-        f"postgresql+psycopg2://postgres:{RDS_PASSWORD}@{RDS_HOST}:5432/fashiondb"
+        f"postgresql+psycopg2://postgres:{RDS_PASSWORD}@{RDS_HOST}:5432/postgres"
     )
-
     # Generate user data
     user_data = generate_user_data(10)
-    user_data.to_sql("users", engine, if_exists="replace", index=False, schema="fashion")
+    user_data.to_sql("users", engine, if_exists="replace", index=False)
     print("User data inserted successfully.")
 
     # Read product data
-    product_data = read_product_data("./products.csv")
-    product_data.to_sql("products", engine, if_exists="replace", index=False, schema="fashion")
+    product_data = read_product_data("./product.csv")
+    product_data.to_sql("products", engine, if_exists="replace", index=False)
     print("Product data inserted successfully.")
