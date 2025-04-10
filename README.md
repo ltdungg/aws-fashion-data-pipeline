@@ -1,1 +1,1 @@
-# fashion-data-pipeline
+# aws-fashion-data-pipeline
