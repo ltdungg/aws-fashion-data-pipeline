@@ -24,13 +24,15 @@ db_params = {
 PRODUCT_PATH = "./product.csv"
 
 USERS_TABLE = """
-    CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(50),
-        first_name VARCHAR(50),
-        last_name VARCHAR(50),
-        email VARCHAR(100),
-        phone VARCHAR(20),
+    DROP TABLE IF EXISTS users CASCADE;
+    
+    CREATE TABLE users (
+        id INT PRIMARY KEY,
+        username VARCHAR(250),
+        first_name VARCHAR(250),
+        last_name VARCHAR(250),
+        email VARCHAR(250),
+        phone VARCHAR(250),
         address VARCHAR(255),
         sex CHAR(1),
         birthdate DATE
@@ -38,36 +40,45 @@ USERS_TABLE = """
 """
 
 PRODUCT_TABLE = """
+    DROP TABLE IF EXISTS products CASCADE;
+    
     CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY,
+        id INT PRIMARY KEY,
         gender VARCHAR(10),
-        master_category VARCHAR(50),
-        sub_category VARCHAR(50),
-        article_type VARCHAR(50),
-        base_colour VARCHAR(50),
-        season VARCHAR(50),
-        `year` INT,
-        `usage` VARCHAR(50),
-        product_display_name VARCHAR(255)
+        master_category VARCHAR(250),
+        sub_category VARCHAR(250),
+        article_type VARCHAR(250),
+        base_colour VARCHAR(250),
+        season VARCHAR(250),
+        year FLOAT,
+        usage VARCHAR(250),
+        product_display_name VARCHAR(255),
+        price FLOAT
     );
 """
 
 ORDER_TABLE = """
+     DROP TABLE IF EXISTS orders CASCADE;
+
     CREATE TABLE IF NOT EXISTS orders (
-        id SERIAL PRIMARY KEY,
-        user_id INT FOREIGN KEY REFERENCES users(id),
+        id INT PRIMARY KEY,
+        user_id INT,
         order_date TIMESTAMP,
-        total_price FLOAT
+        total_price FLOAT,
+        CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
     );
 """
 
 ORDER_DETAILS_TABLE = """
+    DROP TABLE IF EXISTS order_details CASCADE;
+    
     CREATE TABLE IF NOT EXISTS order_details (
-        id SERIAL PRIMARY KEY,
-        order_id INT FOREIGN KEY REFERENCES orders(id),
+        order_id INT,
         product_id INT,
         quantity INT,
-        unit_price FLOAT
+        unit_price FLOAT,
+        PRIMARY KEY (order_id, product_id),
+        CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(id)
     );
 """
 
@@ -75,17 +86,18 @@ def get_conn_and_cursor():
     try:
         conn = psycopg2.connect(**db_params)
         cursor = conn.cursor()
+
         return conn, cursor
     except (Exception) as e:
-        return f"Error: {e}"
+        raise f"Error: {e}"
 
-def create_tables(conn, cursor,table_name,table_query):
+def create_tables(conn, cursor,table_name, table_query):
     try:
         cursor.execute(table_query)
         conn.commit()
         print(f"Table {table_name} created successfully.")
     except (Exception) as e:
-        return f"Error: {e}"
+        raise f"Error: {e}"
 
 def generate_user_data(num_rows):
     fake = faker.Faker()
@@ -123,7 +135,6 @@ def read_product_data(file_path):
     df = df.drop(columns=["Unnamed: 10"], axis=1)
     df = df.assign(price=1)
     df['price'] = df['price'].apply(lambda x: random.randint(1000, 2000))
-
     return df
 
 if __name__ == "__main__":
@@ -133,14 +144,14 @@ if __name__ == "__main__":
     # Create tables
     create_tables(conn=conn, cursor=cursor, table_name="users", table_query=USERS_TABLE)
     create_tables(conn=conn, cursor=cursor, table_name="products", table_query=PRODUCT_TABLE)
-    create_tables(conn, cursor, table_name="orders", table_query=ORDER_TABLE)
-    create_tables(conn, cursor, table_name="order_details", table_query=ORDER_DETAILS_TABLE)
+    create_tables(conn=conn, cursor=cursor, table_name="orders", table_query=ORDER_TABLE)
+    create_tables(conn=conn, cursor=cursor, table_name="order_details", table_query=ORDER_DETAILS_TABLE)
 
     # Generate user data
     user_data = generate_user_data(1000)
 
     # Insert user data into the database
-    users_tuple = [tuple(row) for row in user_data.values]
+    users_tuple = (tuple(row) for row in user_data.values)
     users_insert_query = """
         INSERT INTO users (id, username, first_name, last_name, email, phone, address, sex, birthdate)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -155,12 +166,15 @@ if __name__ == "__main__":
     # Insert product data into the database
     product_tuple = [tuple(row) for row in product_data.values]
     product_insert_query = """
-        INSERT INTO products (id, gender, master_category, sub_category, article_type, base_colour, season, year, usage, product_display_name)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO products (id, gender, master_category, sub_category, article_type, base_colour, season, year, usage, product_display_name, price)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     cursor.executemany(product_insert_query, product_tuple)
     conn.commit()
     print("Product data inserted successfully.")
+
+    # Successfully
+    print("Done!")
 
     # Close the database connection
     cursor.close()

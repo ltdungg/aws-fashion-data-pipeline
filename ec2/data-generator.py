@@ -81,14 +81,13 @@ def generate_order_data(user_id, products):
     total_price = 0
     for i in range(numbers_of_product):
         purchase_product = {
-           'order_id': LAST_ORDER_ID,
-           'product_id': random_products[i][0],
-           'quantity': random.randint(1, 5),
-           'unit_price': random_products[i][1]
+           'order_id': int(LAST_ORDER_ID),
+           'product_id': int(random_products[i][0]),
+           'quantity': int(random.randint(1, 5)),
+           'unit_price': float(random_products[i][1])
         }
         total_price += random_products[i][1] * purchase_product['quantity']
-        purchase_product_df = pd.DataFrame(purchase_product, index=[0])
-        order_details.append(purchase_product_df)
+        order_details.append(purchase_product)
     order_data = {
         'id': LAST_ORDER_ID,
         'user_id': user_id,
@@ -97,7 +96,7 @@ def generate_order_data(user_id, products):
     }
 
     order_df = pd.DataFrame(order_data, index=[0])
-    order_details_df = pd.concat(order_details, ignore_index=True)
+    order_details_df = pd.DataFrame(order_details)
     return [order_df, order_details_df]
 
 def clickstream_task(user_id, product_id):
@@ -119,6 +118,10 @@ def order_task(conn, cursor, user_id, products):
 
         # Insert order details data into the database
         order_details_tuple = [tuple(row) for row in order_data[1].values]
+
+        for i in range(len(order_details_tuple)):
+            order_details_tuple[i] = (int(order_details_tuple[i][0]), int(order_details_tuple[i][1]), int(order_details_tuple[i][2]), float(order_details_tuple[i][3]))
+
         order_details_insert_query = """
             INSERT INTO order_details (order_id, product_id, quantity, unit_price) VALUES (%s, %s, %s, %s)
         """
@@ -146,6 +149,3 @@ if __name__ == "__main__":
     order_thread = threading.Thread(target=order_task, args=(conn, cursor, user_id, products))
     order_thread.start()
 
-    # Wait for threads to finish
-    cursor.close()
-    conn.close()
