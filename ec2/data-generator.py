@@ -3,33 +3,85 @@ import json
 import random
 from datetime import datetime
 import pandas as pd
-from sqlalchemy import create_engine, text
+import psycopg2
 from dotenv import load_dotenv
 import os
 import threading
+import base64
 import time
 
+# RDS Parameters
 load_dotenv(".env")
 RDS_HOST = os.getenv("RDS_HOST")
 RDS_PASSWORD = os.getenv("RDS_PASSWORD")
 LAST_ORDER_ID = None
 
-def get_rds_engine():
-    return create_engine(
-        f"postgresql+psycopg2://postgres:{RDS_PASSWORD}@{RDS_HOST}:5432/postgres"
-    )
+db_params = {
+    'dbname': 'postgres',
+    'user': 'postgres',
+    'password': RDS_PASSWORD,
+    'host': RDS_HOST,
+    'port': 5432
+}
 
-def get_rds_user_id(engine):
-    with engine.connect() as conn:
-        result = conn.execute(text('SELECT id FROM users;'))
+ORDER_TABLE = """
+    CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        user_id INT FOREIGN KEY REFERENCES users(id),
+        order_date TIMESTAMP,
+        total_price FLOAT
+    );
+"""
+
+ORDER_DETAILS_TABLE = """
+    CREATE TABLE IF NOT EXISTS order_details (
+        id SERIAL PRIMARY KEY,
+        order_id INT FOREIGN KEY REFERENCES orders(id),
+        product_id INT,
+        quantity INT,
+        unit_price FLOAT
+    );
+"""
+
+# Kinesis Parameters
+STREAM_NAME = os.getenv("STREAM_NAME")
+STREAM_ARN = os.getenv("STREAM_ARN")
+
+
+def get_conn_and_cursor():
+    try:
+        conn = psycopg2.connect(**db_params)
+        cursor = conn.cursor()
+        return conn, cursor
+    except (Exception) as e:
+        return f"Error: {e}"
+
+def create_tables(conn, cursor):
+    try:
+        cursor.execute(ORDER_TABLE)
+        cursor.execute(ORDER_DETAILS_TABLE)
+        conn.commit()
+        print("Tables created successfully.")
+    except (Exception) as e:
+        return f"Error: {e}"
+
+def get_rds_user_id(conn, cursor):
+    try:
+        cursor.execute('SELECT id FROM users')
+        result = cursor.fetchall()
         user_id = [row[0] for row in result]
-    return user_id
+        return user_id
+    except (Exception) as e:
+        return f"Error: {e}"
 
-def get_rds_product(engine):
-    with engine.connect() as conn:
-        result = conn.execute(text('SELECT id, price FROM products;'))
+def get_rds_product(conn, cursor):
+    try:
+        cursor.execute('SELECT id, price FROM products')
+        result = cursor.fetchall()
         product_id = [(row[0], row[1]) for row in result]
-    return product_id
+        return product_id
+    except (Exception) as e:
+        return f"Error: {e}"
 
 def generate_clickstream_data(user_id, product_id):
     event_type_enum = ['page_view', 'add_to_cart', 'product_view']
@@ -76,31 +128,55 @@ def generate_order_data(user_id, products):
     order_details_df = pd.concat(order_details, ignore_index=True)
     return [order_df, order_details_df]
 
-def clickstream_task(engine, user_id, product_id):
+def clickstream_task(user_id, product_id):
     while True:
         clickstream_data = generate_clickstream_data(user_id, product_id)
         print(clickstream_data)
-        time.sleep(random.randint(0, 3))
+        time.sleep(random.uniform(0, 2))
 
-def order_task(engine, user_id, products):
+def order_task(conn, cursor, user_id, products):
     while True:
         order_data = generate_order_data(user_id, products)
-        order_data[0].to_sql("orders", engine, if_exists="append", index=False)
-        order_data[1].to_sql("order_details", engine, if_exists="append", index=False)
-        print("Order data inserted successfully.")
+
+        # Insert order data into the database
+        orders_tuple = [tuple(row) for row in order_data[0].values]
+        order_insert_query = """
+            INSERT INTO orders (id, user_id, order_date, total_price) VALUES (%s, %s, %s, %s)
+        """
+        cursor.executemany(order_insert_query, orders_tuple)
+
+        # Insert order details data into the database
+        order_details_tuple = [tuple(row) for row in order_data[1].values]
+        order_details_insert_query = """
+            INSERT INTO order_details (order_id, product_id, quantity, unit_price) VALUES (%s, %s, %s, %s)
+        """
+        cursor.executemany(order_details_insert_query, order_details_tuple)
+        conn.commit()
+
+        print("Order data inserted successfully. Order ID: ", order_data[0]['id'].values[0])
         time.sleep(random.randint(0, 3))
 
 if __name__ == "__main__":
-    engine = get_rds_engine()
-    products = get_rds_product(engine)
-    user_id = get_rds_user_id(engine)
+    # Create database connection
+    conn, cursor = get_conn_and_cursor()
+
+    # Create tables
+    create_tables(conn, cursor)
+
+    # Get user and product data
+    products = get_rds_product(conn, cursor)
+    user_id = get_rds_user_id(conn, cursor)
+
     product_id = [product[0] for product in products]
 
     # Start clickstream task
-    clickstream_thread = threading.Thread(target=clickstream_task, args=(engine, user_id, product_id))
+    clickstream_thread = threading.Thread(target=clickstream_task, args=(user_id, product_id))
     clickstream_thread.start()
 
     # Start order task
-    order_thread = threading.Thread(target=order_task, args=(engine, user_id, products))
+    order_thread = threading.Thread(target=order_task, args=(conn, cursor, user_id, products))
     order_thread.start()
 
+    # Wait for threads to finish
+    cursor.close()
+    conn.close()

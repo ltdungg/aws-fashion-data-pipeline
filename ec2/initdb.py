@@ -48,7 +48,6 @@ def generate_user_data(num_rows):
         df_profile = pd.DataFrame(profile, index=[0])
         profiles.append(df_profile)
 
-
     return pd.concat(profiles, ignore_index=True)
 
 
