@@ -24,25 +24,6 @@ db_params = {
     'port': 5432
 }
 
-ORDER_TABLE = """
-    CREATE TABLE IF NOT EXISTS orders (
-        id SERIAL PRIMARY KEY,
-        user_id INT FOREIGN KEY REFERENCES users(id),
-        order_date TIMESTAMP,
-        total_price FLOAT
-    );
-"""
-
-ORDER_DETAILS_TABLE = """
-    CREATE TABLE IF NOT EXISTS order_details (
-        id SERIAL PRIMARY KEY,
-        order_id INT FOREIGN KEY REFERENCES orders(id),
-        product_id INT,
-        quantity INT,
-        unit_price FLOAT
-    );
-"""
-
 # Kinesis Parameters
 STREAM_NAME = os.getenv("STREAM_NAME")
 STREAM_ARN = os.getenv("STREAM_ARN")
@@ -53,15 +34,6 @@ def get_conn_and_cursor():
         conn = psycopg2.connect(**db_params)
         cursor = conn.cursor()
         return conn, cursor
-    except (Exception) as e:
-        return f"Error: {e}"
-
-def create_tables(conn, cursor):
-    try:
-        cursor.execute(ORDER_TABLE)
-        cursor.execute(ORDER_DETAILS_TABLE)
-        conn.commit()
-        print("Tables created successfully.")
     except (Exception) as e:
         return f"Error: {e}"
 
@@ -159,9 +131,6 @@ def order_task(conn, cursor, user_id, products):
 if __name__ == "__main__":
     # Create database connection
     conn, cursor = get_conn_and_cursor()
-
-    # Create tables
-    create_tables(conn, cursor)
 
     # Get user and product data
     products = get_rds_product(conn, cursor)
