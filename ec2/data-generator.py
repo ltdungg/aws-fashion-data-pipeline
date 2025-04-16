@@ -9,6 +9,7 @@ import os
 import threading
 import base64
 import time
+import boto3
 
 # RDS Parameters
 load_dotenv(".env")
@@ -25,7 +26,7 @@ db_params = {
 }
 
 # Kinesis Parameters
-STREAM_NAME = os.getenv("STREAM_NAME")
+STREAM_NAME = os.getenv("KINESIS_STREAM_NAME")
 STREAM_ARN = os.getenv("STREAM_ARN")
 
 
@@ -72,7 +73,7 @@ def generate_clickstream_data(user_id, product_id):
     event_type = random.choice(event_type_enum)
     clickstream_data = {
         'user_id': random.choice(user_id),
-        'timestamp': datetime.now(),
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'event_type': event_type,
         'product_id': random.choice(product_id) if event_type in ['add_to_cart', 'product_view'] else None
     }
@@ -112,9 +113,17 @@ def generate_order_data(user_id, products):
     return [order_df, order_details_df]
 
 def clickstream_task(user_id, product_id):
+    kinesis_client = boto3.client('kinesis', region_name='ap-southeast-1')
     while True:
         clickstream_data = generate_clickstream_data(user_id, product_id)
         print(clickstream_data)
+        clickstream_json = json.dumps(clickstream_data)
+        kinesis_client.put_record(
+            StreamName=STREAM_NAME,
+            Data=base64.b64encode(clickstream_json.encode()),
+            PartitionKey=str(clickstream_data['user_id']),
+            StreamARN=STREAM_ARN
+        )
         time.sleep(random.uniform(0, 2))
 
 def order_task(conn, cursor, user_id, products):
@@ -163,4 +172,3 @@ if __name__ == "__main__":
     # Start order task
     order_thread = threading.Thread(target=order_task, args=(conn, cursor, user_id, products))
     order_thread.start()
-

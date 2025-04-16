@@ -1,3 +1,5 @@
+sudo su
+
 dnf install -y git tar gcc \
                    zlib-devel bzip2-devel readline-devel \
                    sqlite sqlite-devel openssl-devel \
@@ -10,3 +12,10 @@ curl https://pyenv.run | bash && \
     source ~/.bashrc && \
     pyenv install 3.12.4 && \
     pyenv global 3.12.4
+ 
+sudo yum install postgresql17-server.x86_64 -y
+
+psql -U postgres -h <YOUR_POSTGRESQL_DNS> -p 5432 -d postgres
+
+
+                
