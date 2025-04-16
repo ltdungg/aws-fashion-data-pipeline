@@ -37,6 +37,18 @@ def get_conn_and_cursor():
     except (Exception) as e:
         return f"Error: {e}"
 
+def get_last_order_id(conn, cursor):
+    global LAST_ORDER_ID
+    try:
+        cursor.execute('SELECT MAX(id) FROM orders')
+        result = cursor.fetchone()
+        if result[0] is not None:
+            LAST_ORDER_ID = result[0]
+        else:
+            LAST_ORDER_ID = None
+    except (Exception) as e:
+        raise f"Error: {e}"
+
 def get_rds_user_id(conn, cursor):
     try:
         cursor.execute('SELECT id FROM users')
@@ -134,6 +146,9 @@ def order_task(conn, cursor, user_id, products):
 if __name__ == "__main__":
     # Create database connection
     conn, cursor = get_conn_and_cursor()
+
+    # Get last order ID
+    get_last_order_id(conn, cursor)
 
     # Get user and product data
     products = get_rds_product(conn, cursor)
