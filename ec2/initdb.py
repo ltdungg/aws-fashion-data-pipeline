@@ -78,7 +78,8 @@ ORDER_DETAILS_TABLE = """
         quantity INT,
         unit_price FLOAT,
         PRIMARY KEY (order_id, product_id),
-        CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(id)
+        CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(id),
+        CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(id)
     );
 """
 
