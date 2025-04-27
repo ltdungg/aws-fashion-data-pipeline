@@ -1,0 +1,58 @@
+[
+  {
+    "Name": "gender",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "master_category",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "sub_category",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "article_type",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "base_colour",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "season",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "year",
+    "Type": "float",
+    "Comment": ""
+  },
+  {
+    "Name": "usage",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "product_display_name",
+    "Type": "string",
+    "Comment": ""
+  },
+  {
+    "Name": "price",
+    "Type": "float",
+    "Comment": ""
+  },
+  {
+    "Name": "id",
+    "Type": "int",
+    "Comment": "",
+    "PartitionKey": "Partition (1)"
+  }
+]

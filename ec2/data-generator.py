@@ -7,7 +7,6 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 import threading
-import base64
 import time
 import boto3
 
@@ -120,7 +119,7 @@ def clickstream_task(user_id, product_id):
         clickstream_json = json.dumps(clickstream_data)
         kinesis_client.put_record(
             StreamName=STREAM_NAME,
-            Data=base64.b64encode(clickstream_json.encode()),
+            Data=clickstream_json,
             PartitionKey=str(clickstream_data['user_id']),
             StreamARN=STREAM_ARN
         )
