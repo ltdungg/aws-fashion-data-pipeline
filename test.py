@@ -1,8 +1,14 @@
-import json
-import base64
+from datetime import datetime, timedelta
 
-pre = "ZXlKMWMyVnlYMmxrSWpvZ09EQTBMQ0FpZEdsdFpYTjBZVzF3SWpvZ0lqSXdNalV0TURRdE1qY2dNRFk2TlRFNk5EWWlMQ0FpWlhabGJuUmZkSGx3WlNJNklDSndZV2RsWDNacFpYY2lMQ0FpY0hKdlpIVmpkRjlwWkNJNklHNTFiR3g5"
+try:
+    DATE_EXECUTION = event["DATE_EXECUTION"]
+except Exception as e:
+    DATE_EXECUTION = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-record_data = base64.b64decode(pre).decode('utf-8')
-data = base64.b64decode(record_data).decode()
-print(json.loads(data))
+year = DATE_EXECUTION.split('-')[0]
+month = DATE_EXECUTION.split('-')[1]
+day = DATE_EXECUTION.split('-')[2]
+
+print(year)
+print(month)
+print(day)

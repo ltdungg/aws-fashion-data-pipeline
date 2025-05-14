@@ -50,6 +50,12 @@ def lambda_handler(event, context):
     except Exception as e:
         DATE_EXECUTION = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
+    year = DATE_EXECUTION.split('-')[0]
+    month = DATE_EXECUTION.split('-')[1]
+    day = DATE_EXECUTION.split('-')[2]
+
+    partition_key = f'{year}/{month}/{day}'
+
     # Orders Table
     table_name = "orders"
     orders_query = f"""
@@ -58,7 +64,7 @@ def lambda_handler(event, context):
             AND order_date <= '{DATE_EXECUTION} 23:59:59'
     """
     orders_df = get_table_data(table_name, orders_query)
-    orders_file_name = f"orders/orders_{DATE_EXECUTION}.csv"
+    orders_file_name = f"orders/{partition_key}/orders.csv"
     put_csv_to_s3(orders_df, RAW_BUCKET, orders_file_name)
 
     # Order Details Table
@@ -71,7 +77,7 @@ def lambda_handler(event, context):
                 AND order_date <= '{DATE_EXECUTION} 23:59:59')
     """
     order_details_df = get_table_data(table_name, order_details_query)
-    order_details_file_name = f"order_details/order_details_{DATE_EXECUTION}.csv"
+    order_details_file_name = f"order_details/{partition_key}/order_details.csv"
     put_csv_to_s3(order_details_df, RAW_BUCKET, order_details_file_name)
 
     # Users Table
@@ -80,7 +86,7 @@ def lambda_handler(event, context):
             SELECT * FROM users
     """
     users_df = get_table_data(table_name, users_query)
-    users_file_name = f"users/users_{DATE_EXECUTION}.csv"
+    users_file_name = f"users/{partition_key}/users.csv"
     put_csv_to_s3(users_df, RAW_BUCKET, users_file_name)
 
     # Products Table
@@ -89,7 +95,7 @@ def lambda_handler(event, context):
             SELECT * FROM products
     """
     products_df = get_table_data(table_name, products_query)
-    products_file_name = f"products/products_{DATE_EXECUTION}.csv"
+    products_file_name = f"products/{partition_key}/products.csv"
     put_csv_to_s3(products_df, RAW_BUCKET, products_file_name)
 
 
