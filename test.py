@@ -1,14 +1,11 @@
 from datetime import datetime, timedelta
+import pandas as pd
 
-try:
-    DATE_EXECUTION = event["DATE_EXECUTION"]
-except Exception as e:
-    DATE_EXECUTION = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+df = pd.DataFrame({
+    'id': [1, 2, 3],
+    'user_id': [101, 102, 103],
+    'order_date': ['2023-10-01', '2023-10-02', '2023-10-03'],
+    'total_price': [100.0, 200.0, 300.0]
+})
 
-year = DATE_EXECUTION.split('-')[0]
-month = DATE_EXECUTION.split('-')[1]
-day = DATE_EXECUTION.split('-')[2]
-
-print(year)
-print(month)
-print(day)
+print(df)
