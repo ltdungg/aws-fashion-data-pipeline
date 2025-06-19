@@ -19,7 +19,7 @@ dynamodb_client = boto3.client('dynamodb')
 CLEAN_ZONE_BUCKET = os.getenv("CLEAN_ZONE_BUCKET")
 
 def get_recommended_products(s3_clean_bucket: str = None, product_id: int = None):
-    products_df = wr.s3.read_parquet(path=f"s3://{s3_clean_bucket}/products/products.parquet")
+    products_df = wr.s3.read_parquet(path=f"s3://{s3_clean_bucket}/products/")
 
     product_index = products_df[products_df['id'] == product_id].index[0]
     sub_category = products_df.at[product_index, 'sub_category']
@@ -47,7 +47,7 @@ def lambda_handler(event, context):
     response = event['Records'][0]
     try:
         print(f"Processed Kinesis Event - EventID: {response['eventID']}")
-        record_data = base64.b64decode(response['kinesis']['data']).decode('utf-8')
+        record_data = response['kinesis']['data'].decode('utf-8')
         print(f"Record Data: {record_data}")
     except Exception as e:
         print(f"An error occurred {e}")
